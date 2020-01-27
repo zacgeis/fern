@@ -7,6 +7,9 @@
 - Start with only supporting ints and go from there.
 - output assembly file.
 - simple control flow. if and loop.
+- always have a main entry point
+  - `func main`
+  - start without passing in any args.
 
 ## Basic Example
 

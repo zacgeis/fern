@@ -29,6 +29,13 @@ optimization. Simple syntax.
 - Only templates, no metaprogramming
 - C style *& for pointers.
 
+## Thoughts
+
+- Always think of the smallest, simplest example, and build from there. Start
+Recursive descent parser with just plus. Then plus and minus. Etc.
+- Understand the core interesting part about an algorithm. Recursive descent,
+using the stack to enforce order of operations.
+
 ## Basic Example
 
 ```

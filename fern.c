@@ -52,9 +52,10 @@ char* SubStr(char* base, int i, int len) {
 */
 
 typedef enum {
-  kIntLiteral,
-  kPlus,
-  kMinus,
+  kTokenIntLiteral,
+  kTokenPlus,
+  kTokenMinus,
+  kTokenEOF,
 } TokenType;
 
 typedef struct {
@@ -67,6 +68,28 @@ typedef struct {
   int length;
   int capacity;
 } TokenList;
+
+Token* TokenEOF() {
+  static Token token;
+  token.type = kTokenEOF;
+  token.value = "";
+  return &token;
+}
+
+char* TokenTypeStr(TokenType type) {
+  switch (type) {
+    case kTokenIntLiteral:
+      return "kTokenIntLiteral";
+    case kTokenPlus:
+      return "kTokenPlus";
+    case kTokenMinus:
+      return "kTokenMinus";
+    case kTokenEOF:
+      return "kTokenEOF";
+    default:
+      return "UNKNOWN";
+  }
+}
 
 Token* TokenListAppend(TokenList* list) {
   if (list->length == list->capacity) {
@@ -89,11 +112,11 @@ TokenList Tokenize(char* input) {
       continue;
     } else if (c == '+') {
       token = TokenListAppend(&list);
-      token->type = kPlus;
+      token->type = kTokenPlus;
       token->value = SubStr(input, i, 1);
     } else if (c == '1') {
       token = TokenListAppend(&list);
-      token->type = kIntLiteral;
+      token->type = kTokenIntLiteral;
       token->value = SubStr(input, i, 1);
     } else {
       printf("[ERROR] Bad token.\n");
@@ -102,6 +125,170 @@ TokenList Tokenize(char* input) {
   }
 
   return list;
+}
+
+void TokenListPrint(TokenList* list) {
+  printf("[DEBUG] Token List (size: %d):\n", list->length);
+  for (int i = 0; i < list->length; i++) {
+    Token* token = &list->tokens[i];
+    char* token_type = TokenTypeStr(token->type);
+    printf("  (type: %s, value: '%s')\n", token_type, token->value);
+  }
+  printf("\n");
+}
+
+/*
+   Parser
+*/
+
+typedef enum {
+  kNodeIntLiteral,
+  kNodeBinaryOp,
+} NodeType;
+
+char* NodeTypeStr(NodeType type) {
+  switch (type) {
+    case kNodeIntLiteral:
+      return "kNodeIntLiteral";
+    case kNodeBinaryOp:
+      return "kNodeBinaryOp";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+typedef enum {
+  kBinaryOpPlus,
+  kBinaryOpMinus,
+} BinaryOpType;
+
+char* BinaryOpTypeStr(BinaryOpType type) {
+  switch (type) {
+    case kBinaryOpPlus:
+      return "kBinaryOpPlus";
+    case kBinaryOpMinus:
+      return "kBinaryOpMinus";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+typedef struct {
+  NodeType type;
+  void* typed_node;
+} Node;
+
+typedef struct {
+  BinaryOpType op_type;
+  Node* left;
+  Node* right;
+} NodeBinaryOp;
+
+Node* NodeBinaryOpNew(BinaryOpType type, Node* left, Node* right) {
+  Node* node = (Node*) malloc(sizeof(Node));
+  node->type = kNodeBinaryOp;
+  node->typed_node = (void*) malloc(sizeof(NodeBinaryOp));
+  NodeBinaryOp* node_binary_op = (NodeBinaryOp*) node->typed_node;
+  node_binary_op->op_type = type;
+  node_binary_op->left = left;
+  node_binary_op->right = right;
+  return node;
+}
+
+typedef struct {
+  int value;
+} NodeIntLiteral;
+
+Node* NodeIntLiteralNew(int value) {
+  Node* node = (Node*) malloc(sizeof(Node));
+  node->type = kNodeIntLiteral;
+  node->typed_node = (void*) malloc(sizeof(NodeIntLiteral));
+  NodeIntLiteral* node_int_literal = (NodeIntLiteral*) node->typed_node;
+  node_int_literal->value = value;
+  return node;
+}
+
+typedef struct {
+  TokenList* token_list;
+  int i;
+} ParseState;
+
+Token* Peek(ParseState* state) {
+  if (state->i == state->token_list->length) {
+    return TokenEOF();
+  }
+  return &state->token_list->tokens[state->i + 1];
+}
+
+Token* Next(ParseState* state) {
+  if (state->i == state->token_list->length) {
+    return TokenEOF();
+  }
+  return &state->token_list->tokens[state->i++];
+}
+
+Token* Match(ParseState* state, TokenType token_type) {
+  Token* token = Peek(state);
+  if (token->type == token_type) {
+    return Next(state);
+  }
+
+  // TODO: Handle match error here.
+  return TokenEOF();
+}
+
+Node* ParseIntLiteral(ParseState* state);
+Node* ParseExpressionL0(ParseState* state);
+Node* ParseExpressionL1(ParseState* state);
+
+Node* ParseExpressionL0(ParseState* state) {
+  // TODO: Maybe don't use NULL here, instead use an empty node static.
+  Node* left = NULL;
+  Node* right = NULL;
+
+  if (Peek(state)->type == kTokenEOF) {
+    return NULL;
+  }
+
+  left = ParseExpressionL1(state);
+
+  if (Peek(state)->type == kTokenMinus) {
+    Next(state);
+  } else {
+    return left;
+  }
+
+  right = ParseExpressionL0(state);
+
+  return NodeBinaryOpNew(kBinaryOpMinus, left, right);
+}
+
+Node* ParseExpressionL1(ParseState* state) {
+  // TODO: Maybe don't use NULL here, instead use an empty node static.
+  Node* left = NULL;
+  Node* right = NULL;
+
+  if (Peek(state)->type == kTokenEOF) {
+    return NULL;
+  }
+
+  if (Peek(state)->type == kTokenIntLiteral) {
+    left = ParseIntLiteral(state);
+  }
+
+  if (Peek(state)->type == kTokenPlus) {
+    Next(state);
+  } else {
+    return left;
+  }
+
+  right = ParseExpressionL0(state);
+
+  return NodeBinaryOpNew(kBinaryOpPlus, left, right);
+}
+
+Node* ParseIntLiteral(ParseState* state) {
+  return NodeIntLiteralNew(1);
 }
 
 /*
@@ -116,8 +303,8 @@ int main(int argc, char** argv) {
 
   char* input = ReadFile(argv[1]);
   TokenList token_list = Tokenize(input);
-  printf("Token list length: %d\n", token_list.length);
-  printf("Plus token: %s\n", token_list.tokens[1].value);
+  TokenListPrint(&token_list);
+  // TODO: test parser with new parse state.
   free(input);
 
   return 0;

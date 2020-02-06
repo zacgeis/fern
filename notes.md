@@ -35,6 +35,8 @@ optimization. Simple syntax.
 Recursive descent parser with just plus. Then plus and minus. Etc.
 - Understand the core interesting part about an algorithm. Recursive descent,
 using the stack to enforce order of operations.
+- Avoid using NULL. Instead use empty holder types like NodeEmpty and TokenEOF.
+Helps prevent segfault issues / dereferencing NULL.
 
 ## Basic Example
 

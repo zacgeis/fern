@@ -1,1 +1,1 @@
-gcc fern.c -o fern && ./fern test.fe
+gcc fern.c -o ./bin/fern && ./bin/fern test.fe

@@ -37,6 +37,10 @@ Recursive descent parser with just plus. Then plus and minus. Etc.
 using the stack to enforce order of operations.
 - Avoid using NULL. Instead use empty holder types like NodeEmpty and TokenEOF.
 Helps prevent segfault issues / dereferencing NULL.
+- Understand what pieces you can minimally build out while contiuing the core
+functionality. Example: built out parser by only supporting the number literal
+'1'. It's easy to add better number parsing later, but it's not something that's
+critical for implementing most of the parser.
 
 ## Basic Example
 

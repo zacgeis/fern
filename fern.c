@@ -51,6 +51,19 @@ char* SubStr(char* base, int i, int len) {
   return str;
 }
 
+bool IsDigit(char c) {
+  return c >= '0' && c <= '9';
+}
+
+int StrToInt(char* str) {
+  int value = 0;
+  for (int i = 0; str[i] != '\0'; i++) {
+    value *= 10; // Multiply first, avoid overflow.
+    value += str[i] - '0';
+  }
+  return value;
+}
+
 void PrintIndent(int indent) {
   for (int i = 0; i < indent; i++) {
     printf(" ");
@@ -62,10 +75,12 @@ void PrintIndent(int indent) {
 */
 
 typedef enum {
-  kTokenEOF,
-  kTokenIntLiteral,
-  kTokenPlus,
-  kTokenMinus,
+  kTokenTypeEOF,
+  kTokenTypeIntLiteral,
+  kTokenTypePlus,
+  kTokenTypeMinus,
+  kTokenTypeOpenParen,
+  kTokenTypeCloseParen,
 } TokenType;
 
 typedef struct {
@@ -79,23 +94,31 @@ typedef struct {
   int capacity;
 } TokenList;
 
-Token* TokenEOF() {
+Token* EOFToken() {
   static Token token;
-  token.type = kTokenEOF;
-  token.value = "";
+  static bool init = true;
+  if (init) {
+    token.type = kTokenTypeEOF;
+    token.value = "";
+    init = false;
+  }
   return &token;
 }
 
-char* TokenTypeStr(TokenType type) {
+char* TokenTypeToStr(TokenType type) {
   switch (type) {
-    case kTokenEOF:
-      return "kTokenEOF";
-    case kTokenIntLiteral:
-      return "kTokenIntLiteral";
-    case kTokenPlus:
-      return "kTokenPlus";
-    case kTokenMinus:
-      return "kTokenMinus";
+    case kTokenTypeEOF:
+      return "kTokenTypeEOF";
+    case kTokenTypeIntLiteral:
+      return "kTokenTypeIntLiteral";
+    case kTokenTypePlus:
+      return "kTokenTypePlus";
+    case kTokenTypeMinus:
+      return "kTokenTypeMinus";
+    case kTokenTypeOpenParen:
+      return "kTokenTypeOpenParen";
+    case kTokenTypeCloseParen:
+      return "kTokenTypeCloseParen";
     default:
       return "UNKNOWN";
   }
@@ -122,16 +145,29 @@ TokenList Tokenize(char* input) {
       continue;
     } else if (c == '+') {
       token = TokenListAppend(&list);
-      token->type = kTokenPlus;
+      token->type = kTokenTypePlus;
       token->value = SubStr(input, i, 1);
     } else if (c == '-') {
       token = TokenListAppend(&list);
-      token->type = kTokenMinus;
+      token->type = kTokenTypeMinus;
       token->value = SubStr(input, i, 1);
-    } else if (c == '1') {
+    } else if (c == '(') {
       token = TokenListAppend(&list);
-      token->type = kTokenIntLiteral;
+      token->type = kTokenTypeOpenParen;
       token->value = SubStr(input, i, 1);
+    } else if (c == ')') {
+      token = TokenListAppend(&list);
+      token->type = kTokenTypeCloseParen;
+      token->value = SubStr(input, i, 1);
+    } else if (IsDigit(c)) {
+      token = TokenListAppend(&list);
+      token->type = kTokenTypeIntLiteral;
+      int j = i;
+      while (input[j] != '\0' && IsDigit(input[j])) {
+        j++;
+      }
+      token->value = SubStr(input, i, j - i);
+      i = j - 1;
     } else {
       printf("[ERROR] Bad token.\n");
       // TODO: Add pretty printing of the token in the string here.
@@ -145,7 +181,7 @@ void TokenListPrint(TokenList* list) {
   printf("[TokenList] size: %d\n", list->length);
   for (int i = 0; i < list->length; i++) {
     Token* token = &list->tokens[i];
-    char* token_type = TokenTypeStr(token->type);
+    char* token_type = TokenTypeToStr(token->type);
     printf("  [%s] value: '%s'\n", token_type, token->value);
   }
   printf("\n");
@@ -156,35 +192,35 @@ void TokenListPrint(TokenList* list) {
 */
 
 typedef enum {
-  kNodeEmpty,
-  kNodeIntLiteral,
-  kNodeBinaryOp,
+  kNodeTypeEmpty,
+  kNodeTypeIntLiteral,
+  kNodeTypeBinaryOp,
 } NodeType;
 
-char* NodeTypeStr(NodeType type) {
+char* NodeTypeToStr(NodeType type) {
   switch (type) {
-    case kNodeEmpty:
-      return "kNodeEmpty";
-    case kNodeIntLiteral:
-      return "kNodeIntLiteral";
-    case kNodeBinaryOp:
-      return "kNodeBinaryOp";
+    case kNodeTypeEmpty:
+      return "kNodeTypeEmpty";
+    case kNodeTypeIntLiteral:
+      return "kNodeTypeIntLiteral";
+    case kNodeTypeBinaryOp:
+      return "kNodeTypeBinaryOp";
     default:
       return "UNKNOWN";
   }
 }
 
 typedef enum {
-  kBinaryOpPlus,
-  kBinaryOpMinus,
+  kBinaryOpTypePlus,
+  kBinaryOpTypeMinus,
 } BinaryOpType;
 
-char* BinaryOpTypeStr(BinaryOpType type) {
+char* BinaryOpTypeToStr(BinaryOpType type) {
   switch (type) {
-    case kBinaryOpPlus:
-      return "kBinaryOpPlus";
-    case kBinaryOpMinus:
-      return "kBinaryOpMinus";
+    case kBinaryOpTypePlus:
+      return "kBinaryOpTypePlus";
+    case kBinaryOpTypeMinus:
+      return "kBinaryOpTypeMinus";
     default:
       return "UNKNOWN";
   }
@@ -195,11 +231,14 @@ typedef struct {
   void* typed_node;
 } Node;
 
-Node* NodeEmpty() {
+Node* EmptyNode() {
   static Node node;
-  node.type = kNodeEmpty;
-  node.typed_node = NULL;
-
+  static bool init = true;
+  if (init) {
+    node.type = kNodeTypeEmpty;
+    node.typed_node = NULL;
+    init = false;
+  }
   return &node;
 }
 
@@ -207,13 +246,13 @@ typedef struct {
   BinaryOpType op_type;
   Node* left;
   Node* right;
-} NodeBinaryOp;
+} BinaryOpNode;
 
-Node* NodeBinaryOpNew(BinaryOpType type, Node* left, Node* right) {
+Node* BinaryOpNodeNew(BinaryOpType type, Node* left, Node* right) {
   Node* node = (Node*) malloc(sizeof(Node));
-  node->type = kNodeBinaryOp;
-  node->typed_node = (void*) malloc(sizeof(NodeBinaryOp));
-  NodeBinaryOp* node_binary_op = (NodeBinaryOp*) node->typed_node;
+  node->type = kNodeTypeBinaryOp;
+  node->typed_node = (void*) malloc(sizeof(BinaryOpNode));
+  BinaryOpNode* node_binary_op = (BinaryOpNode*) node->typed_node;
   node_binary_op->op_type = type;
   node_binary_op->left = left;
   node_binary_op->right = right;
@@ -222,13 +261,13 @@ Node* NodeBinaryOpNew(BinaryOpType type, Node* left, Node* right) {
 
 typedef struct {
   int value;
-} NodeIntLiteral;
+} IntLiteralNode;
 
-Node* NodeIntLiteralNew(int value) {
+Node* IntLiteralNodeNew(int value) {
   Node* node = (Node*) malloc(sizeof(Node));
-  node->type = kNodeIntLiteral;
-  node->typed_node = (void*) malloc(sizeof(NodeIntLiteral));
-  NodeIntLiteral* node_int_literal = (NodeIntLiteral*) node->typed_node;
+  node->type = kNodeTypeIntLiteral;
+  node->typed_node = (void*) malloc(sizeof(IntLiteralNode));
+  IntLiteralNode* node_int_literal = (IntLiteralNode*) node->typed_node;
   node_int_literal->value = value;
   return node;
 }
@@ -240,14 +279,14 @@ typedef struct {
 
 Token* Peek(ParseState* state) {
   if (state->i == state->token_list->length) {
-    return TokenEOF();
+    return EOFToken();
   }
   return &state->token_list->tokens[state->i];
 }
 
 Token* Next(ParseState* state) {
   if (state->i == state->token_list->length) {
-    return TokenEOF();
+    return EOFToken();
   }
   return &state->token_list->tokens[state->i++];
 }
@@ -258,25 +297,39 @@ Token* Match(ParseState* state, TokenType token_type) {
     return Next(state);
   }
 
-  // TODO: Handle match error here.
-  return TokenEOF();
+  // TODO: Add pretty print error message here with file contents.
+  printf("[ERROR] Missing expected parse token: %s\n", TokenTypeToStr(token_type));
+
+  // TODO: Handle match error here. Stop parsing...
+  return EOFToken();
 }
 
 Node* ParseIntLiteral(ParseState* state);
 Node* ParseExpressionL0(ParseState* state);
 Node* ParseExpressionL1(ParseState* state);
 
-Node* ParseExpressionL0(ParseState* state) {
-  Node* left = NodeEmpty();
-  Node* right = NodeEmpty();
+// TODO: Instead or parsing int literals within L0 and L1, we should be
+//       parsing another level that includes parens and literals.
+//       Something like L2?
 
-  if (Peek(state)->type == kTokenEOF) {
-    return NodeEmpty();
+Node* ParseExpressionL0(ParseState* state) {
+  Node* left = EmptyNode();
+  Node* right = EmptyNode();
+
+  if (Peek(state)->type == kTokenTypeEOF) {
+    return EmptyNode();
   }
 
-  left = ParseExpressionL1(state);
+  if (Peek(state)->type == kTokenTypeOpenParen) {
+    Match(state, kTokenTypeOpenParen);
+    left = ParseExpressionL0(state);
+    Match(state, kTokenTypeCloseParen);
+  } else {
+    // Attempt to parse higher precedence first.
+    left = ParseExpressionL1(state);
+  }
 
-  if (Peek(state)->type == kTokenMinus) {
+  if (Peek(state)->type == kTokenTypeMinus) {
     Next(state);
   } else {
     return left;
@@ -284,35 +337,37 @@ Node* ParseExpressionL0(ParseState* state) {
 
   right = ParseExpressionL0(state);
 
-  return NodeBinaryOpNew(kBinaryOpMinus, left, right);
+  return BinaryOpNodeNew(kBinaryOpTypeMinus, left, right);
 }
 
 Node* ParseExpressionL1(ParseState* state) {
-  Node* left = NodeEmpty();
-  Node* right = NodeEmpty();
+  Node* left = EmptyNode();
+  Node* right = EmptyNode();
 
-  if (Peek(state)->type == kTokenEOF) {
-    return NodeEmpty();
+  if (Peek(state)->type == kTokenTypeEOF) {
+    return EmptyNode();
   }
 
-  if (Peek(state)->type == kTokenIntLiteral) {
+  if (Peek(state)->type == kTokenTypeIntLiteral) {
     left = ParseIntLiteral(state);
   }
 
-  if (Peek(state)->type == kTokenPlus) {
+  if (Peek(state)->type == kTokenTypePlus) {
     Next(state);
   } else {
     return left;
   }
 
-  right = ParseExpressionL0(state);
+  // We're on addition, only parse addition or higher precedence to the right.
+  right = ParseExpressionL1(state);
 
-  return NodeBinaryOpNew(kBinaryOpPlus, left, right);
+  return BinaryOpNodeNew(kBinaryOpTypePlus, left, right);
 }
 
 Node* ParseIntLiteral(ParseState* state) {
   Token* token = Next(state);
-  return NodeIntLiteralNew(1);
+  int value = StrToInt(token->value);
+  return IntLiteralNodeNew(value);
 }
 
 Node* Parse(TokenList* token_list) {
@@ -323,41 +378,41 @@ Node* Parse(TokenList* token_list) {
   return ParseExpressionL0(&parse_state);
 }
 
-void NodeEmptyPrint(Node* node, int indent);
-void NodeBinaryOpPrint(NodeBinaryOp* node, int indent);
-void NodeIntLiteralPrint(NodeIntLiteral* node, int indent);
+void EmptyNodePrint(Node* node, int indent);
+void BinaryOpNodePrint(BinaryOpNode* node, int indent);
+void IntLiteralNodePrint(IntLiteralNode* node, int indent);
 
 void NodePrint(Node* node, int indent) {
   switch (node->type) {
-    case kNodeEmpty:
-      NodeEmptyPrint(node, indent);
+    case kNodeTypeEmpty:
+      EmptyNodePrint(node, indent);
       break;
-    case kNodeIntLiteral:
-      NodeIntLiteralPrint((NodeIntLiteral*) node->typed_node, indent);
+    case kNodeTypeIntLiteral:
+      IntLiteralNodePrint((IntLiteralNode*) node->typed_node, indent);
       break;
-    case kNodeBinaryOp:
-      NodeBinaryOpPrint((NodeBinaryOp*) node->typed_node, indent);
+    case kNodeTypeBinaryOp:
+      BinaryOpNodePrint((BinaryOpNode*) node->typed_node, indent);
       break;
     default:
       printf("[ERROR] Attempting to print unknown node type: %d\n", node->type);
   }
 }
 
-void NodeEmptyPrint(Node* node, int indent) {
+void EmptyNodePrint(Node* node, int indent) {
   PrintIndent(indent);
-  printf("[NodeEmpty]\n");
+  printf("[EmptyNode]\n");
 }
 
-void NodeBinaryOpPrint(NodeBinaryOp* node, int indent) {
+void BinaryOpNodePrint(BinaryOpNode* node, int indent) {
   PrintIndent(indent);
-  printf("[NodeBinaryOp] binary_op: %s\n", BinaryOpTypeStr(node->op_type));
+  printf("[BinaryOpNode] binary_op: %s\n", BinaryOpTypeToStr(node->op_type));
   NodePrint(node->left, indent + kIndent);
   NodePrint(node->right, indent + kIndent);
 }
 
-void NodeIntLiteralPrint(NodeIntLiteral* node, int indent) {
+void IntLiteralNodePrint(IntLiteralNode* node, int indent) {
   PrintIndent(indent);
-  printf("[NodeIntLiteral] value: %d\n", node->value);
+  printf("[IntLiteralNode] value: %d\n", node->value);
 }
 
 /*
@@ -380,9 +435,9 @@ int main(int argc, char** argv) {
   // free(input);
 
   /*
-  Node* n1 = NodeIntLiteralNew(1);
-  Node* n2 = NodeIntLiteralNew(1);
-  Node* n3 = NodeBinaryOpNew(kBinaryOpPlus, n1, n2);
+  Node* n1 = IntLiteralNodeNew(1);
+  Node* n2 = IntLiteralNodeNew(1);
+  Node* n3 = BinaryOpNodeNew(kBinaryOpTypePlus, n1, n2);
   */
 
   NodePrint(node, 0);

@@ -42,6 +42,18 @@ functionality. Example: built out parser by only supporting the number literal
 '1'. It's easy to add better number parsing later, but it's not something that's
 critical for implementing most of the parser.
 
+## Naming
+
+- Subclass should be Class[BaseClass]
+  - Example: EmptyNode (not NodeEmpty).
+- Functions on classes should follow the class name Class[Function]
+  - Example: EmptyNodePrint (not PrintEmptyNode).
+- Functions not associated with a strict "class" don't need to follow the
+  previous convention.
+  - Example: PrintError (doesn't need to be ErrorPrint).
+- Enum constants should have the full enum as a prefix
+  - Example: enum kTokenType - constant kTokenTypeOpenParen (not kOpenParen).
+
 ## Basic Example
 
 ```

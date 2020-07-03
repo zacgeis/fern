@@ -3,18 +3,18 @@
 
 char* TokenTypeToStr(TokenType type) {
   switch (type) {
-    case kTokenTypeEOF:
-      return "kTokenTypeEOF";
+    case kTokenTypeEmpty:
+      return "kTokenTypeEmpty";
     case kTokenTypeIntLiteral:
       return "kTokenTypeIntLiteral";
     case kTokenTypePlus:
       return "kTokenTypePlus";
     case kTokenTypeMinus:
       return "kTokenTypeMinus";
-    case kTokenTypeMultiply:
-      return "kTokenTypeMultiply";
-    case kTokenTypeDivide:
-      return "kTokenTypeDivide";
+    case kTokenTypeAsterisk:
+      return "kTokenTypeAsterisk";
+    case kTokenTypeSlash:
+      return "kTokenTypeSlash";
     case kTokenTypeOpenParen:
       return "kTokenTypeOpenParen";
     case kTokenTypeCloseParen:
@@ -24,9 +24,9 @@ char* TokenTypeToStr(TokenType type) {
   }
 }
 
-Token* EOFToken() {
+Token* EmptyToken() {
   static Token token = {
-    .type = kTokenTypeEOF,
+    .type = kTokenTypeEmpty,
     .value = "",
   };
   return &token;
@@ -51,7 +51,7 @@ Token* TokenListAppend(TokenList* list) {
 TokenList* Tokenize(char* input) {
   TokenList* list = TokenListNew();
 
-  Token* token = NULL;
+  Token* token = EmptyToken();
   for (int i = 0; input[i] != '\0'; i++) {
     char c = input[i];
     if (c == ' ' || c == '\n' || c == '\t') {
@@ -66,11 +66,11 @@ TokenList* Tokenize(char* input) {
       token->value = SubStr(input, i, 1);
     } else if (c == '*') {
       token = TokenListAppend(list);
-      token->type = kTokenTypeMultiply;
+      token->type = kTokenTypeAsterisk;
       token->value = SubStr(input, i, 1);
     } else if (c == '/') {
       token = TokenListAppend(list);
-      token->type = kTokenTypeDivide;
+      token->type = kTokenTypeSlash;
       token->value = SubStr(input, i, 1);
     } else if (c == '(') {
       token = TokenListAppend(list);

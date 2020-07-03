@@ -22,10 +22,14 @@ char* NodeTypeToStr(NodeType type) {
 
 char* BinaryOpTypeToStr(BinaryOpType type) {
   switch (type) {
-    case kBinaryOpTypePlus:
-      return "kBinaryOpTypePlus";
-    case kBinaryOpTypeMinus:
-      return "kBinaryOpTypeMinus";
+    case kBinaryOpTypeMul:
+      return "kBinaryOpTypeMul";
+    case kBinaryOpTypeDiv:
+      return "kBinaryOpTypeDiv";
+    case kBinaryOpTypeAdd:
+      return "kBinaryOpTypeAdd";
+    case kBinaryOpTypeSub:
+      return "kBinaryOpTypeSub";
     default:
       return "UnknownNode";
   }
@@ -61,14 +65,14 @@ Node* IntLiteralNodeNew(int value) {
 
 Token* Peek(ParseState* state) {
   if (state->i == state->token_list->length) {
-    return EOFToken();
+    return EmptyToken();
   }
   return &state->token_list->tokens[state->i];
 }
 
 Token* Next(ParseState* state) {
   if (state->i == state->token_list->length) {
-    return EOFToken();
+    return EmptyToken();
   }
   return &state->token_list->tokens[state->i++];
 }
@@ -79,70 +83,15 @@ Token* Match(ParseState* state, TokenType token_type) {
     return Next(state);
   }
 
-  // TODO: Add pretty print error message here with file contents.
   printf("[ERROR] Missing expected parse token: %s\n", TokenTypeToStr(token_type));
 
-  // TODO: Handle match error here. Stop parsing...
-  return EOFToken();
+  return EmptyToken();
 }
 
+// Keep in order of precedence.
 Node* ParseIntLiteral(ParseState* state);
-Node* ParseExpressionAddOrMinus(ParseState* state);
-// Node* ParseExpressionMultiplyOrDivide(ParseState* state);
-// Node* ParseExpression(ParseState* state);
-
-Node* ParseExpressionAddOrMinus(ParseState* state) {
-  Node* left = EmptyNode();
-  Node* right = EmptyNode();
-
-  if (Peek(state)->type == kTokenTypeEOF) {
-    return EmptyNode();
-  }
-
-  /* if (Peek(state)->type == kTokenTypeOpenParen) { */
-  /*   Match(state, kTokenTypeOpenParen); */
-  /*   left = ParseExpressionL0(state); */
-  /*   Match(state, kTokenTypeCloseParen); */
-  /* } else { */
-    // Attempt to parse higher precedence first.
-  // }
-
-  left = ParseExpressionAddOrMinus(state);
-
-  if (Peek(state)->type == kTokenTypeMinus) {
-    Next(state);
-  } else {
-    return left;
-  }
-
-  right = ParseExpressionAddOrMinus(state);
-
-  return BinaryOpNodeNew(kBinaryOpTypeMinus, left, right);
-}
-
-// Node* ParseExpressionMultiplyOrDivide(ParseState* state) {
-//   Node* left = EmptyNode();
-//   Node* right = EmptyNode();
-//
-//   if (Peek(state)->type == kTokenTypeEOF) {
-//     return EmptyNode();
-//   }
-//
-//   if (Peek(state)->type == kTokenTypeIntLiteral) {
-//     left = ParseIntLiteral(state);
-//   }
-//
-//   if (Peek(state)->type == kTokenTypePlus) {
-//     Next(state);
-//   } else {
-//     return left;
-//   }
-//
-//   // We're on addition, only parse addition or higher precedence to the right.
-//   right = ParseExpressionL1(state);
-//
-//   return BinaryOpNodeNew(kBinaryOpTypePlus, left, right);
-// }
+Node* ParseExpressionMulOrDiv(ParseState* state);
+Node* ParseExpressionAddOrSub(ParseState* state);
 
 Node* ParseIntLiteral(ParseState* state) {
   Token* token = Next(state);
@@ -150,12 +99,66 @@ Node* ParseIntLiteral(ParseState* state) {
   return IntLiteralNodeNew(value);
 }
 
-Node* Parse(TokenList* token_list) {
-  ParseState parse_state;
-  parse_state.i = 0;
-  parse_state.token_list = token_list;
+Node* ParseExpressionMulOrDiv(ParseState* state) {
+  Node* left = EmptyNode();
+  Node* right = EmptyNode();
+  Token* op = EmptyToken();
 
-  return ParseExpressionAddOrMinus(&parse_state);
+  left = ParseIntLiteral(state);
+  while (Peek(state)->type == kTokenTypeAsterisk
+      || Peek(state)->type == kTokenTypeSlash) {
+    op = Next(state);
+    right = ParseIntLiteral(state);
+
+    switch (op->type) {
+      case kTokenTypeAsterisk:
+        left = BinaryOpNodeNew(kBinaryOpTypeMul, left, right);
+        break;
+      case kTokenTypeSlash:
+        left = BinaryOpNodeNew(kBinaryOpTypeDiv, left, right);
+        break;
+      default:
+        printf("[ERROR] Unexpected parse condition.\n");
+    }
+  }
+
+  return left;
+}
+
+Node* ParseExpressionAddOrSub(ParseState* state) {
+  Node* left = EmptyNode();
+  Node* right = EmptyNode();
+  Token* op = EmptyToken();
+
+  left = ParseExpressionMulOrDiv(state);
+  while (Peek(state)->type == kTokenTypePlus
+      || Peek(state)->type == kTokenTypeMinus) {
+    op = Next(state);
+    right = ParseExpressionMulOrDiv(state);
+
+    switch (op->type) {
+      case kTokenTypePlus:
+        left = BinaryOpNodeNew(kBinaryOpTypeAdd, left, right);
+        break;
+      case kTokenTypeMinus:
+        left = BinaryOpNodeNew(kBinaryOpTypeSub, left, right);
+        break;
+      default:
+        printf("[ERROR] Unexpected parse condition.\n");
+    }
+  }
+
+  return left;
+}
+
+Node* Parse(TokenList* token_list) {
+  ParseState parse_state = {
+    .i = 0,
+    .token_list = token_list,
+  };
+
+  // Start from the lowest precedence.
+  return ParseExpressionAddOrSub(&parse_state);
 }
 
 void EmptyNodePrint(Node* node, int indent);

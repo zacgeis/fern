@@ -10,8 +10,10 @@ typedef enum {
 } NodeType;
 
 typedef enum {
-  kBinaryOpTypePlus,
-  kBinaryOpTypeMinus,
+  kBinaryOpTypeMul,
+  kBinaryOpTypeDiv,
+  kBinaryOpTypeAdd,
+  kBinaryOpTypeSub,
 } BinaryOpType;
 
 typedef struct {

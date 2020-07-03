@@ -2,12 +2,12 @@
 #define TOKENIZER_H_
 
 typedef enum {
-  kTokenTypeEOF,
+  kTokenTypeEmpty,
   kTokenTypeIntLiteral,
   kTokenTypePlus,
   kTokenTypeMinus,
-  kTokenTypeMultiply,
-  kTokenTypeDivide,
+  kTokenTypeAsterisk,
+  kTokenTypeSlash,
   kTokenTypeOpenParen,
   kTokenTypeCloseParen,
 } TokenType;
@@ -25,7 +25,7 @@ typedef struct {
 
 char* TokenTypeToStr(TokenType type);
 
-Token* EOFToken();
+Token* EmptyToken();
 
 TokenList* Tokenize(char* input);
 

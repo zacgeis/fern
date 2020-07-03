@@ -1,22 +1,28 @@
-# Notes
+# Fern
 
-## General
+Fern is a simple toy compiler I work on in my spare time.
+
+## Notes
+
+### TODO
+
+- Add arena based allocators to simplify the memory management of the compiler.
+
+### General
 
 - Add functions for pretty printing all steps - tokens, ast, output, etc.
 - Tracer bullet style. Start with the most minimal int only pass from input to
 assembly.
   - Only ints, single operator, no variables, etc.
 - Only support a single file to start.
-- Keep source file to a single file too.
 - Start with only supporting ints and go from there.
 - output assembly file.
 - simple control flow. if and loop.
 - always have a main entry point
   - `func main`
   - start without passing in any args.
-- Single file c and only support single file Fern. Toy language. No
-optimization. Simple syntax.
 - Insipired by tcc and quickjs
+- Toy language / compiler.
 - Similar syntax to typescript.
 - Generics come later.
 - All values have default init
@@ -29,7 +35,7 @@ optimization. Simple syntax.
 - Only templates, no metaprogramming
 - C style *& for pointers.
 
-## Thoughts
+### Thoughts
 
 - Always think of the smallest, simplest example, and build from there. Start
 Recursive descent parser with just plus. Then plus and minus. Etc.
@@ -41,8 +47,18 @@ Helps prevent segfault issues / dereferencing NULL.
 functionality. Example: built out parser by only supporting the number literal
 '1'. It's easy to add better number parsing later, but it's not something that's
 critical for implementing most of the parser.
+- Don't get caught up on specific algorithms like recursive descent parsing.
+Writing a toy compiler is just like any other program. Translate one form to
+another.
+  - Look at a specific small example like "1 + 2", get that implemented simply.
+  - Move to "1 + 2 + 3", get that implemented correctly, without making anything
+  too generic.
+  - Then move to "1 + 2 + 3 + 4", etc.
+  - Once that's working, move to "1 + 2 * 3".
+  - Take things in small chunks.
+  - This approach worked really well in writing the parser from scratch.
 
-## Naming
+### Naming
 
 - Subclass should be Class[BaseClass]
   - Example: EmptyNode (not NodeEmpty).
@@ -54,7 +70,7 @@ critical for implementing most of the parser.
 - Enum constants should have the full enum as a prefix
   - Example: enum kTokenType - constant kTokenTypeOpenParen (not kOpenParen).
 
-## Basic Example
+### Basic Example
 
 ```
 func add(a: int, b: int): int {
@@ -71,7 +87,7 @@ func max(a: int, b: int) {
 }
 ```
 
-## generics
+### Generics
 
 ```
 func add<T>(a: T, b: T): T {
@@ -79,12 +95,13 @@ func add<T>(a: T, b: T): T {
 }
 ```
 
-## types
+### Types
 
 ```
 int
 float
 char
+string?
 arrays?
 pointer types?
 ```

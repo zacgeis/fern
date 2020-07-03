@@ -1,1 +1,5 @@
-bin/*
+compile_commands.json
+out/*
+.clangd/
+.ninja_deps
+.ninja_log

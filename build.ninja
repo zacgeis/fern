@@ -1,0 +1,26 @@
+compiler = clang
+cflags = -g -Wall -Isrc/
+
+rule cc
+  command = $compiler $cflags -c $in -o $out
+
+rule link
+  command = $compiler $in -o $out
+
+rule generate_compile_commands
+  command = ninja -t compdb cc > compile_commands.json
+
+build compile_commands: generate_compile_commands
+
+build out/fern.o: cc src/fern.c
+build out/utils.o: cc src/utils.c
+build out/tokenizer.o: cc src/tokenizer.c
+build out/parser.o: cc src/parser.c
+
+build out/fern: link out/fern.o $
+  out/utils.o $
+  out/tokenizer.o $
+  out/parser.o $
+
+default out/fern
+default compile_commands

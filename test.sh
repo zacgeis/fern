@@ -1,1 +1,1 @@
-ninja && ./out/fern ./examples/test.fe
+ninja && ./out/fern ./examples/test.fe ./examples/test.asm

@@ -1,7 +1,8 @@
 #ifndef TOKENIZER_H_
 #define TOKENIZER_H_
 
-typedef enum {
+typedef enum TokenType TokenType;
+enum TokenType {
   kTokenTypeEmpty,
   kTokenTypeIntLiteral,
   kTokenTypePlus,
@@ -10,18 +11,20 @@ typedef enum {
   kTokenTypeSlash,
   kTokenTypeOpenParen,
   kTokenTypeCloseParen,
-} TokenType;
+};
 
-typedef struct {
+typedef struct Token Token;
+struct Token {
   TokenType type;
   char* value;
-} Token;
+};
 
-typedef struct {
+typedef struct TokenList TokenList;
+struct TokenList {
   Token* tokens;
   int length;
   int capacity;
-} TokenList;
+};
 
 char* TokenTypeToStr(TokenType type);
 

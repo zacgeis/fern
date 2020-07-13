@@ -16,11 +16,13 @@ build out/fern.o: cc src/fern.c
 build out/utils.o: cc src/utils.c
 build out/tokenizer.o: cc src/tokenizer.c
 build out/parser.o: cc src/parser.c
+build out/compiler.o: cc src/compiler.c
 
 build out/fern: link out/fern.o $
   out/utils.o $
   out/tokenizer.o $
   out/parser.o $
+  out/compiler.o $
 
 default out/fern
 default compile_commands

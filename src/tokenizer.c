@@ -90,7 +90,7 @@ TokenList* Tokenize(char* input) {
       token->value = SubStr(input, i, j - i);
       i = j - 1;
     } else {
-      printf("[ERROR] Bad token.\n");
+      Fatal("Tokenizer found unexpected token.");
     }
   }
 

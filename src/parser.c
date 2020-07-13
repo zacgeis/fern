@@ -83,7 +83,7 @@ Token* Match(ParseState* state, TokenType token_type) {
     return Next(state);
   }
 
-  printf("[ERROR] Missing expected parse token: %s\n", TokenTypeToStr(token_type));
+  Fatal(StrFmt("Missing expected parse token: $", TokenTypeToStr(token_type)));
 
   return EmptyToken();
 }
@@ -118,7 +118,7 @@ Node* ParseExpressionMulOrDiv(ParseState* state) {
         left = BinaryOpNodeNew(kBinaryOpTypeDiv, left, right);
         break;
       default:
-        printf("[ERROR] Unexpected parse condition.\n");
+        Fatal("Unexpected parse condition.");
     }
   }
 
@@ -144,7 +144,7 @@ Node* ParseExpressionAddOrSub(ParseState* state) {
         left = BinaryOpNodeNew(kBinaryOpTypeSub, left, right);
         break;
       default:
-        printf("[ERROR] Unexpected parse condition.\n");
+        Fatal("Unexpected parse condition.");
     }
   }
 
@@ -177,7 +177,7 @@ void NodePrint(Node* node, int indent) {
       BinaryOpNodePrint((BinaryOpNode*) node->typed_node, indent);
       break;
     default:
-      printf("[ERROR] Attempting to print unknown node type: %d\n", node->type);
+      Fatal("Attempting to print unknown node type.");
   }
 }
 

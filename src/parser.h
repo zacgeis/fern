@@ -3,34 +3,38 @@
 
 #include "tokenizer.h"
 
-typedef enum {
+typedef enum NodeType NodeType;
+enum NodeType {
   kNodeTypeEmpty,
   kNodeTypeIntLiteral,
   kNodeTypeBinaryOp,
-} NodeType;
+};
 
-typedef enum {
+typedef enum BinaryOpType BinaryOpType;
+enum BinaryOpType {
   kBinaryOpTypeMul,
   kBinaryOpTypeDiv,
   kBinaryOpTypeAdd,
   kBinaryOpTypeSub,
-} BinaryOpType;
+};
 
-typedef struct {
+typedef struct Node Node;
+struct Node {
   NodeType type;
   void* typed_node;
-} Node;
+};
 
-typedef struct {
+typedef struct BinaryOpNode BinaryOpNode;
+struct BinaryOpNode {
   BinaryOpType op_type;
   Node* left;
   Node* right;
-} BinaryOpNode;
+};
 
-typedef struct {
+typedef struct IntLiteralNode IntLiteralNode;
+struct IntLiteralNode {
   int value;
-} IntLiteralNode;
-
+};
 
 char* NodeTypeToStr(NodeType type);
 char* BinaryOpTypeToStr(BinaryOpType type);
